@@ -1,0 +1,1 @@
+export function validateGenerationConfig(c:any){const e=[];if(c.counts.people<c.counts.bands)e.push('People must be >= bands');return e;}

@@ -1,3 +1,5 @@
+import type { BandDerivedValues } from "../simulation/derived/types";
+
 export type EntityStatus = "active" | "hiatus" | "split" | "closed" | "left";
 
 export interface BandMember {
@@ -38,8 +40,19 @@ export interface Band {
   agentId: string;
   memberIds: string[];
   status: EntityStatus;
+  /** Legacy aliases retained for simulation/save compatibility. */
   currentAbility: number;
   potentialAbility: number;
+  overallQuality: number;
+  growthCeiling: number;
+  livePerformance: number;
+  catalogueQuality: number;
+  reputation: number;
+  commercialAppeal: number;
+  fanLoyalty: number;
+  festivalDraw: number;
+  bookingFee: number;
+  derived: BandDerivedValues;
   popularity: number;
   momentum: number;
   chemistry: number;

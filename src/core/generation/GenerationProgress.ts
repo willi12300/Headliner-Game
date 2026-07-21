@@ -1,0 +1,1 @@
+export interface GenerationProgress{stage:string;current:number;total:number;percent:number;}

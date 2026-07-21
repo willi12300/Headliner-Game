@@ -1,0 +1,1 @@
+export async function runGenerationPipeline(config:any){console.log("Generating",config);return {seed:config.seed,preset:config.preset,elapsedMs:0,stages:["Create Save","Generate Geography","Generate Industry","Generate People","Generate Bands","Generate Careers","Generate Relationships","Calculate Derived Values","Validate","Commit"],warnings:[]};}

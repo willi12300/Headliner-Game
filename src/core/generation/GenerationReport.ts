@@ -1,0 +1,1 @@
+export interface GenerationReport{seed:number;preset:string;elapsedMs:number;stages:string[];warnings:string[];}

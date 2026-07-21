@@ -1,0 +1,18 @@
+{
+  "milestone": "database-foundation-1",
+  "schemaVersion": 4,
+  "added": [
+    "src-tauri/migrations/003_music_genome_extension.sql",
+    "src-tauri/migrations/004_reference_data_extension.sql",
+    "src/core/domain/database.ts",
+    "src/core/domain/save.ts",
+    "src/core/domain/music.ts",
+    "src/core/domain/festival.ts",
+    "src/core/domain/relationships.ts",
+    "src/core/domain/index.ts",
+    "docs/DATABASE_MILESTONE_1.md"
+  ],
+  "replaced": [
+    "src-tauri/src/database.rs"
+  ]
+}

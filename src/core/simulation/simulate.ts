@@ -1,5 +1,6 @@
 import type { Band, BandMember, Festival, Snapshot, StoryArc, WorldState } from "../domain/models";
 import { average, clamp, SeededRng } from "../rng/SeededRng";
+import { applyBandDerivedValues, calculateBandValues } from "./derived";
 
 const eventId = (state: WorldState, type: string): string => `${type}_${state.week}_${state.events.length + 1}`;
 const arcId = (state: WorldState): string => `arc_${state.week}_${state.storyArcs.length + 1}`;
@@ -108,13 +109,15 @@ function recalculateBand(state: WorldState, band: Band): void {
   band.ego = average(members.map((member) => member.ego));
   band.resilience = average(members.map((member) => member.resilience));
 
-  const baseAbility = average(performers.map((member) => member.currentAbility));
-  const chemistryModifier = (band.chemistry - 50) * 0.09;
-  const moraleModifier = (band.morale - 50) * 0.07;
-  const unavailablePenalty = (members.length - available.length) * 3.2;
-  band.currentAbility = clamp(baseAbility + chemistryModifier + moraleModifier - unavailablePenalty, 1, 100);
-  band.potentialAbility = clamp(average(members.map((member) => member.potentialAbility)), 1, 100);
-  band.liveAbility = clamp(band.currentAbility * 0.55 + average(members.map((member) => member.stagePresence)) * 2.1, 1, 100);
+  const availabilityPenalty = (members.length - available.length) * 4;
+  const recalculated = calculateBandValues(band, performers, {
+    careerExposure: clamp(band.popularity * 0.82 + band.reputation * 0.18, 0, 100),
+    recentSuccess: clamp(band.momentum - availabilityPenalty, 0, 100),
+    regionalReach: clamp(band.popularity * 0.72 + band.socialInfluence * 1.4, 0, 100),
+    existingFollowers: band.followers,
+    momentumInput: band.momentum,
+  });
+  applyBandDerivedValues(band, recalculated);
 }
 
 function processBandCareer(state: WorldState, rng: SeededRng): void {
@@ -128,7 +131,7 @@ function processBandCareer(state: WorldState, rng: SeededRng): void {
     band.followers += followerGrowth;
     band.popularity = clamp(band.popularity + followerGrowth / 26000 + rng.float(-0.13, 0.24), 0, 100);
     band.momentum = clamp(band.momentum + rng.float(-2.2, 2.4), 0, 100);
-    band.ticketDraw = Math.max(20, Math.round(band.popularity * band.liveAbility * rng.float(0.8, 1.3)));
+    band.ticketDraw = Math.max(20, Math.round(Math.pow(band.festivalDraw / 100, 2.1) * 42_000));
     band.financialHealth = clamp(band.financialHealth + rng.float(-1.4, 1.8) + band.popularity * 0.006, 0, 100);
 
     const viralChance = clamp(

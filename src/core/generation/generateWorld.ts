@@ -10,6 +10,7 @@ import type {
   WorldState,
 } from "../domain/models";
 import { average, clamp, SeededRng } from "../rng/SeededRng";
+import { applyBandDerivedValues, calculateBandValues } from "../simulation/derived";
 
 const firstNames = ["Alex", "Sam", "Mia", "Tom", "Freya", "Jack", "Lola", "Ryan", "Emma", "Ash", "Maya", "Ollie", "Nina", "Jude", "Finn", "Ruby", "Charlie", "Sienna", "Oscar", "Ivy"];
 const surnames = ["Stone", "Rivers", "Cooper", "Green", "Patel", "Moon", "Brooks", "Lane", "Carter", "Wilson", "Knight", "Fox", "Jordan", "Mason", "Reed", "Banks", "Hale", "Woods"];
@@ -120,13 +121,22 @@ export function generateWorld(seed: number): WorldState {
 
     const label = rng.pick(labels);
     const agent = rng.pick(agents);
-    const currentAbility = average(bandMembers.map((member) => member.currentAbility));
-    const potentialAbility = average(bandMembers.map((member) => member.potentialAbility));
     const traits = [rng.pick(bandPositiveTraits)];
     if (isWonderband && !traits.includes("Fast-Growing Fanbase")) traits.push("Fast-Growing Fanbase");
     if (rng.chance(0.38)) traits.push(rng.pick(bandNegativeTraits));
 
-    const band: Band = {
+    // Career context is generated first; visible market values are then derived from it.
+    // This allows a cult veteran, new breakout or unknown wonderband to have coherent but distinct profiles.
+    const careerStage = rng.pick(["new", "developing", "established", "cult", "breakout"] as const);
+    const stageContext = {
+      new: { exposure: rng.int(4, 18), success: rng.int(8, 28), reach: rng.int(3, 16) },
+      developing: { exposure: rng.int(18, 42), success: rng.int(22, 50), reach: rng.int(14, 38) },
+      established: { exposure: rng.int(48, 78), success: rng.int(42, 72), reach: rng.int(45, 78) },
+      cult: { exposure: rng.int(30, 56), success: rng.int(38, 68), reach: rng.int(24, 50) },
+      breakout: { exposure: rng.int(42, 72), success: rng.int(68, 94), reach: rng.int(38, 70) },
+    }[careerStage];
+
+    const band = {
       id: bandId,
       name,
       genre: rng.pick(genres),
@@ -135,29 +145,47 @@ export function generateWorld(seed: number): WorldState {
       agentId: agent.id,
       memberIds: bandMembers.map((member) => member.id),
       status: "active",
-      currentAbility,
-      potentialAbility,
-      popularity: clamp(currentAbility * 0.72, 1, 100),
-      momentum: rng.int(20, 62),
-      chemistry: rng.int(45, 86),
-      morale: rng.int(52, 86),
-      fatigue: rng.int(0, 15),
+      currentAbility: 0,
+      potentialAbility: 0,
+      overallQuality: 0,
+      growthCeiling: 0,
+      livePerformance: 0,
+      catalogueQuality: 0,
+      reputation: 0,
+      commercialAppeal: 0,
+      fanLoyalty: 0,
+      festivalDraw: 0,
+      bookingFee: 0,
+      derived: {} as Band["derived"],
+      popularity: 0,
+      momentum: 0,
+      chemistry: 0,
+      morale: average(bandMembers.map((member) => member.morale)),
+      fatigue: average(bandMembers.map((member) => member.fatigue)),
       financialHealth: rng.int(25, 82),
-      followers: Math.round(currentAbility * currentAbility * rng.int(4, 14)),
-      ticketDraw: Math.round(currentAbility * currentAbility * rng.float(0.6, 2.1)),
-      professionalism: average(bandMembers.map((member) => member.professionalism)),
+      followers: 0,
+      ticketDraw: 0,
+      professionalism: 0,
       ambition: average(bandMembers.map((member) => member.ambition)),
       loyalty: average(bandMembers.map((member) => member.loyalty)),
       ego: average(bandMembers.map((member) => member.ego)),
       resilience: average(bandMembers.map((member) => member.resilience)),
       socialInfluence: rng.int(1, 20),
       viralPotential: rng.int(1, 20),
-      liveAbility: rng.int(20, 86),
-      festivalSuitability: rng.int(1, 20),
-      traits,
+      liveAbility: 0,
+      festivalSuitability: rng.int(4, 20),
+      traits: [...traits, `Career Stage: ${careerStage}`],
       isWonderband,
       activeArcIds: [],
-    };
+    } as Band;
+
+    const derived = calculateBandValues(band, bandMembers, {
+      careerExposure: isWonderband ? Math.min(stageContext.exposure, 26) : stageContext.exposure,
+      recentSuccess: stageContext.success,
+      regionalReach: stageContext.reach,
+      momentumInput: stageContext.success,
+    });
+    applyBandDerivedValues(band, derived);
 
     label.rosterIds.push(band.id);
     agent.clientIds.push(band.id);
