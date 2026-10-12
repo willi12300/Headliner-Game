@@ -1,6 +1,6 @@
 [package]
 name = "headliner"
-version = "0.0.2"
+version = "0.0.4"
 description = "Headliner festival and music industry simulation"
 authors = ["you"]
 edition = "2021"

@@ -176,3 +176,31 @@ pre { max-height:520px; overflow:auto; background:#050b10; border:1px solid #243
   .empty-world { grid-template-columns: minmax(0, 1fr); padding: 20px; }
   .entity-list { overflow-x: auto; }
 }
+
+.festival-desk { margin-top: 24px; }
+.festival-desk button { min-height: 44px; border: 1px solid #354d5f; border-radius: 7px; padding: 10px 14px; background: #172737; color: #edf3f7; cursor: pointer; margin: 4px 6px 4px 0; }
+.festival-desk button.primary { color: #0b1016; background: #ffc928; border-color: #ffc928; font-weight: 800; }
+.festival-desk button:disabled { opacity: .45; cursor: default; }
+.festival-desk button:focus-visible { outline: 2px solid #ffc928; outline-offset: 3px; }
+.festival-desk select { display: block; width: 100%; margin-top: 6px; }
+.festival-setup { padding: 24px; max-width: 740px; }
+.festival-setup > label { display: block; margin-bottom: 18px; }
+.festival-budget { border-top: 1px solid #354d5f; margin-top: 20px; }
+.festival-budget p { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.challenge-intro { border-top: 1px solid #354d5f; padding-top: 14px; margin-top: 20px; }
+.festival-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.festival-lineup, .festival-artists, .festival-results { padding: 22px; min-width: 0; }
+.festival-results { margin-bottom: 18px; }
+.booking-card { padding: 18px 0; border-bottom: 1px solid #293d4d; }
+.booking-card h3, .artist-option h3 { margin: 8px 0; }
+.booking-crisis { border: 1px solid #876a2f; border-radius: 8px; background: #282015; padding: 16px; margin: 14px 0; }
+.booking-crisis select { min-width: 0; }
+.booking-crisis h4 { margin: 0; color: #ffd66b; }
+.crisis-banner { border: 1px solid #876a2f; border-radius: 8px; padding: 16px; background: #282015; margin-bottom: 18px; }
+.crisis-banner p { margin-bottom: 0; }
+.decision-memory { display: block; color: #c6b1f4; margin-top: 10px; }
+.artist-option { padding: 16px 0; border-bottom: 1px solid #293d4d; }
+.artist-option p { margin: 5px 0; }
+.artist-option > strong { display: block; margin-top: 10px; color: #ffd66b; }
+.cancelled-booking { font-size: 12px; }
+@media (max-width: 1000px) { .festival-grid { grid-template-columns: minmax(0, 1fr); } }

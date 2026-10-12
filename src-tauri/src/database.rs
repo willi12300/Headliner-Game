@@ -87,8 +87,8 @@ pub fn write_world_save(app: AppHandle, slot: String, payload: String) -> Result
     check_slot(&slot)?;
     let save: serde_json::Value = serde_json::from_str(&payload)
         .map_err(|error| format!("Invalid save JSON: {error}"))?;
-    if save["format"] != "headliner-world" || save["version"] != 1
-        || save["simulationVersion"] != "0.0.3" || !save["world"].is_object()
+    if save["format"] != "headliner-world" || save["version"] != 2
+        || save["simulationVersion"] != "0.0.4" || !save["world"].is_object()
     {
         return Err("Unsupported Headliner save.".to_string());
     }

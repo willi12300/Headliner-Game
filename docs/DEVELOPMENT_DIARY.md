@@ -1,5 +1,15 @@
 # Headliner Development Diary
 
+## 2026-10-12 — First playable festival and backstage crisis
+
+- Added a six-week player festival with site costs, three lineup slots and guaranteed fees.
+- Added keep/cancel/replace decisions, persistent trust and one-time event results.
+- Added stress- and conduct-influenced arrest cases, hearings, detention and verdict news.
+- Added an explicitly labelled challenge that guarantees a booking crisis.
+- Migrated version-1 saves to version 2 without changing past history or RNG state.
+- Verified all three crisis responses in a browser, including saves and narrow layouts.
+- Added a Windows installer build workflow; native playtesting and Android builds remain pending.
+
 ## 2026-10-12 — Persistent world and weekly news
 
 - Added versioned manual and autosave slots preserving the entire simulation and RNG state.

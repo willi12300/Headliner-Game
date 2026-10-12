@@ -40,7 +40,7 @@ test("unsupported, truncated and structurally corrupt saves are rejected", () =>
   const valid = JSON.parse(encodeSave(generateWorld(1)));
   assert.throws(() => decodeSave("{"), /JSON/);
   for (const corrupt of [
-    { ...valid, version: 2 },
+    { ...valid, version: 999 },
     { ...valid, simulationVersion: "future" },
     { ...valid, world: { ...valid.world, members: null } },
     { ...valid, world: { ...valid.world, rngState: -1 } },

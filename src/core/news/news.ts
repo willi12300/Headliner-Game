@@ -9,6 +9,17 @@ export function newsCategory(event: SimulationEvent): NewsCategory {
 
 export function newsHeadline(event: SimulationEvent): string {
   const titles: Record<string, string> = {
+    member_arrested: "A musician's arrest puts appearances at risk",
+    member_bailed: "Released on bail",
+    member_remanded: "Further detention confirmed",
+    member_fined: "Court verdict: a fine",
+    member_cleared: "Case dismissed",
+    festival_founded: "A new festival enters the scene",
+    festival_player_booking: "Your lineup takes shape",
+    festival_booking_cancelled: "An appearance is cancelled",
+    festival_booking_kept: "Festival stands by its act",
+    festival_act_replaced: "Replacement act confirmed",
+    festival_player_result: "The festival's first chapter",
     member_injury: "Injury sidelines musician",
     member_recovered: "Back in action",
     viral_moment: "A breakout moment",
