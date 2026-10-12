@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Result as SqlResult};
+use rusqlite::{Connection, OptionalExtension, Result as SqlResult};
 use serde::Serialize;
 use std::fs;
 use tauri::{AppHandle, Manager};
@@ -30,6 +30,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "reference_data_extension",
         sql: include_str!("../migrations/004_reference_data_extension.sql"),
     },
+    Migration {
+        version: 5,
+        name: "world_saves",
+        sql: include_str!("../migrations/005_world_saves.sql"),
+    },
 ];
 
 #[derive(Serialize)]
@@ -60,6 +65,52 @@ fn ensure_migration_table(connection: &Connection) -> SqlResult<()> {
            applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
          );",
     )
+}
+
+fn check_slot(slot: &str) -> Result<(), String> {
+    match slot {
+        "manual" | "autosave" => Ok(()),
+        _ => Err("Unknown save slot.".to_string()),
+    }
+}
+
+fn open_save_database(app: &AppHandle) -> Result<Connection, String> {
+    let mut connection = Connection::open(database_path(app)?)
+        .map_err(|error| format!("Unable to open save database: {error}"))?;
+    apply_migrations(&mut connection)
+        .map_err(|error| format!("Unable to prepare save database: {error}"))?;
+    Ok(connection)
+}
+
+#[tauri::command]
+pub fn write_world_save(app: AppHandle, slot: String, payload: String) -> Result<(), String> {
+    check_slot(&slot)?;
+    let save: serde_json::Value = serde_json::from_str(&payload)
+        .map_err(|error| format!("Invalid save JSON: {error}"))?;
+    if save["format"] != "headliner-world" || save["version"] != 1
+        || save["simulationVersion"] != "0.0.3" || !save["world"].is_object()
+    {
+        return Err("Unsupported Headliner save.".to_string());
+    }
+    let connection = open_save_database(&app)?;
+    // One SQLite statement atomically replaces this slot, preserving the other slot.
+    connection.execute(
+        "INSERT INTO world_saves(slot, payload) VALUES (?1, ?2)
+         ON CONFLICT(slot) DO UPDATE SET payload = excluded.payload,
+         updated_at = CURRENT_TIMESTAMP",
+        (&slot, &payload),
+    ).map_err(|error| format!("Unable to save world: {error}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn read_world_save(app: AppHandle, slot: String) -> Result<Option<String>, String> {
+    check_slot(&slot)?;
+    let connection = open_save_database(&app)?;
+    connection.query_row(
+        "SELECT payload FROM world_saves WHERE slot = ?1",
+        [&slot], |row| row.get(0),
+    ).optional().map_err(|error| format!("Unable to load world: {error}"))
 }
 
 fn has_migration(connection: &Connection, version: i64) -> SqlResult<bool> {

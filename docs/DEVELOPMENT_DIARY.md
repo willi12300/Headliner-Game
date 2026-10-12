@@ -1,5 +1,14 @@
 # Headliner Development Diary
 
+## 2026-10-12 — Persistent world and weekly news
+
+- Added versioned manual and autosave slots preserving the entire simulation and RNG state.
+- Added SQLite save migration and native save/load commands, with browser preview storage.
+- Added weekly advancement, recorded industry news, unread tracking and active dispute history.
+- Added continuity/corruption tests and SQLite persistence checks.
+- Added a narrow-screen layout for the new controls and news page.
+- Native Windows and Android builds still require toolchain/device verification.
+
 ## 2026-07-14 — Project foundation
 
 ### Built
