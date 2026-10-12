@@ -140,3 +140,39 @@ pre { max-height:520px; overflow:auto; background:#050b10; border:1px solid #243
 .derived-breakdown > div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .42rem 0; border-top: 1px solid rgba(130,170,195,.1); }
 .derived-breakdown span { display: flex; flex-direction: column; }
 .derived-breakdown small { color: #718b9b; }
+/* Persistent-world controls and the weekly industry wire. */
+.session-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 16px; margin: 18px 0; }
+.session-controls > div { margin-right: auto; }
+.session-controls small { display: block; margin-top: 5px; color: #b7c8d6; }
+.session-controls button, .news-page button { min-height: 44px; }
+.session-controls button:not(.primary), .news-page button { border: 1px solid #354d5f; border-radius: 7px; padding: 10px 14px; background: #172737; color: #edf3f7; cursor: pointer; }
+.session-controls button:disabled, .news-page button:disabled { opacity: .5; cursor: default; }
+.session-controls button:focus-visible, .news-page button:focus-visible { outline: 2px solid #ffc928; outline-offset: 3px; }
+.news-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+.news-controls > input { flex: 1; min-width: 180px; }
+.news-controls label { display: flex; align-items: center; gap: 8px; }
+.news-controls input[type=checkbox] { width: 18px; height: 18px; }
+.news-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); gap: 16px; }
+.news-story { padding: 20px 0; border-bottom: 1px solid #293d4d; }
+.news-story h2 { margin: 10px 0; font-size: 20px; }
+.news-story small { color: #b7c8d6; }
+.news-story.unread h2::before { content: "●"; font-size: 12px; color: #c4a3ff; margin-right: 8px; }
+.news-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.story-arc { padding: 14px 0; border-top: 1px solid #293d4d; }
+@media (max-width: 760px) {
+  body { min-width: 0; }
+  .app-shell { display: block; }
+  .sidebar { position: static; width: auto; height: auto; padding: 16px; }
+  .sidebar nav { display: flex; overflow-x: auto; gap: 8px; }
+  .sidebar nav button { flex-shrink: 0; min-height: 44px; }
+  .database-card { display: none; }
+  main { padding: 16px; }
+  .topbar, .browser-toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .header-status { max-width: 100%; }
+  .news-grid, .report-grid, .dashboard-grid, .browser-grid { grid-template-columns: minmax(0, 1fr); }
+  .control-panel, .simulation-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .control-copy, .simulation-actions > div { grid-column: 1 / -1; }
+  .world-metrics, .metric-grid, .report-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .empty-world { grid-template-columns: minmax(0, 1fr); padding: 20px; }
+  .entity-list { overflow-x: auto; }
+}
