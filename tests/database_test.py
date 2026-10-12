@@ -1,5 +1,6 @@
 """Run with python -m unittest discover -s tests -p '*_test.py'."""
 from pathlib import Path
+from contextlib import closing
 import re
 import sqlite3
 import tempfile
@@ -15,16 +16,18 @@ class WorldSaveDatabaseTests(unittest.TestCase):
             connection = sqlite3.connect(path)
             connection.execute("PRAGMA foreign_keys = ON")
             for migration in sorted((ROOT / "src-tauri/migrations").glob("*.sql")):
-                connection.executescript(migration.read_text())
+                connection.executescript(migration.read_text(encoding="utf-8"))
             # Exercise the same SQL used by the Rust command.
-            source = (ROOT / "src-tauri/src/database.rs").read_text()
+            source = (ROOT / "src-tauri/src/database.rs").read_text(encoding="utf-8")
             sql = re.search(r'"(INSERT INTO world_saves.*?CURRENT_TIMESTAMP)"', source, re.S).group(1)
             connection.execute(sql, ("manual", '{"world":"original"}'))
             connection.execute(sql, ("autosave", '{"world":"week one"}'))
             connection.execute(sql, ("autosave", '{"world":"week two"}'))
             connection.commit()
             connection.close()
-            with sqlite3.connect(path) as reopened:
+            # Connection's own context manager commits/rolls back but does not close.
+            # Windows requires the handle closed before deleting the temporary file.
+            with closing(sqlite3.connect(path)) as reopened:
                 saves = dict(reopened.execute("SELECT slot, payload FROM world_saves"))
                 self.assertEqual(saves["manual"], '{"world":"original"}')
                 self.assertEqual(saves["autosave"], '{"world":"week two"}')

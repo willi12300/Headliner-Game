@@ -22,8 +22,8 @@ world available and show an error so the player can retry.
 
 Industry News presents existing simulation events with category/search/unread
 filters, links to bands, older-story pagination and a panel for active disputes.
-It reports recorded outcomes; it does not roll its own events. Arrests, rumours,
-interviews, scouting uncertainty and new storyline types still need simulation
+It reports recorded outcomes; it does not roll its own events. Rumours,
+interviews, scouting uncertainty and additional storyline types still need simulation
 systems before they can appear as news.
 
 Validation:
@@ -39,3 +39,5 @@ The development workspace also passed a browser smoke check for generation,
 weekly advancement, saving/reloading, read state, failed loads and a 390px phone
 viewport. Rust/Tauri compilation and Windows/Android device testing remain
 unverified because this workspace has no Rust or Android toolchain.
+
+The first playable festival and arrest cases are documented in [FIRST_FESTIVAL.md](FIRST_FESTIVAL.md). Version-1 saves migrate in memory to version 2 without changing their history or RNG state; future weeks use simulation version 0.0.4.

@@ -1,7 +1,8 @@
 import type { WorldState } from "../domain/models";
+import { conductDefaults } from "../simulation/arrests";
 
-export const SAVE_VERSION = 1;
-export const SIMULATION_VERSION = "0.0.3";
+export const SAVE_VERSION = 2;
+export const SIMULATION_VERSION = "0.0.4";
 export interface WorldSave {
   format: "headliner-world";
   version: number;
@@ -48,6 +49,23 @@ const worldShape: Shape = {
   }],
 };
 
+const arrestShape: Shape = {
+  ...fields("id memberId bandId status", "string"),
+  ...fields("startedWeek nextHearingWeek stage", "number"), active: "boolean",
+};
+const playerShape: Shape = {
+  ...fields("id name venueId genreFocus status scenario", "string"),
+  ...fields("eventWeek capacity ticketPrice startingCash cash operatingCost reputation", "number"),
+  scenarioTriggered: "boolean",
+  bookings: [{ ...fields("id bandId status", "string"), fee: "number" }],
+  decisions: [{ ...fields("caseId bookingId choice", "string"), week: "number" }],
+  bandTrust: {},
+};
+const resultShape: Shape = {
+  ...fields("attendance revenue costs profit reputationChange", "number"),
+  ...fields("performedBandIds missedBandIds", ["string"]),
+};
+
 function check(value: unknown, shape: Shape, path: string): void {
   if (typeof shape === "string") {
     if (typeof value !== shape || (shape === "number" && !Number.isFinite(value)))
@@ -74,6 +92,14 @@ function validateSave(value: unknown): asserts value is WorldSave {
     throw new Error("This save uses an unsupported save or simulation version.");
   if (!Number.isFinite(Date.parse(save.savedAt))) throw new Error("Invalid save date.");
   const world = save.world;
+  check(world.arrestCases, [arrestShape], "save.world.arrestCases");
+  for (const member of world.members) {
+    check(member, fields("riskTaking stress pastIncidents", "number"), "member.conduct");
+    if (member.riskTaking < 1 || member.riskTaking > 20 || member.stress < 0 || member.stress > 100 ||
+        !Number.isInteger(member.pastIncidents) || member.pastIncidents < 0)
+      throw new Error("Invalid member conduct values.");
+  }
+  if (world.playerFestival !== null) check(world.playerFestival, playerShape, "save.world.playerFestival");
   if (!Number.isSafeInteger(world.seed) || world.seed < 0 ||
       !Number.isInteger(world.rngState) || world.rngState < 0 || world.rngState > 0xffffffff ||
       !Number.isSafeInteger(world.week) || world.week < 0 ||
@@ -95,6 +121,86 @@ function validateSave(value: unknown): asserts value is WorldSave {
   const labels = new Set(world.labels.map(label => label.id));
   const agents = new Set(world.agents.map(agent => agent.id));
   const arcs = new Set(world.storyArcs.map(arc => arc.id));
+  if (world.playerFestival) {
+    if (world.playerFestival.id !== "player_festival" || allIds.has(world.playerFestival.id))
+      throw new Error("Invalid player festival ID.");
+    allIds.add(world.playerFestival.id);
+  }
+  const caseIds = new Set<string>();
+  for (const incident of world.arrestCases) {
+    requireIds([incident.memberId], members);
+    requireIds([incident.bandId], bands);
+    if (!incident.id || caseIds.has(incident.id) ||
+        !["detained", "on_bail", "cleared", "fined"].includes(incident.status) ||
+        !Number.isInteger(incident.startedWeek) || incident.startedWeek < 0 || incident.startedWeek > world.week ||
+        !Number.isInteger(incident.nextHearingWeek) || incident.nextHearingWeek <= incident.startedWeek ||
+        ![0, 1].includes(incident.stage) ||
+        incident.active !== ["detained", "on_bail"].includes(incident.status) ||
+        world.members.find(member => member.id === incident.memberId)?.bandId !== incident.bandId)
+      throw new Error("Invalid arrest history.");
+    caseIds.add(incident.id);
+  }
+  const detained = world.arrestCases.filter(incident => incident.active);
+  if (new Set(detained.map(incident => incident.memberId)).size !== detained.length)
+    throw new Error("A member has multiple open cases.");
+  const player = world.playerFestival;
+  if (player) {
+    requireIds([player.venueId], new Set(world.venues.map(venue => venue.id)));
+    if (!["planning", "completed"].includes(player.status) || !["standard", "backstage_crisis"].includes(player.scenario) ||
+        !player.name.trim() || player.name.length > 60 ||
+        !Number.isInteger(player.eventWeek) || player.eventWeek < 1 ||
+        player.capacity < 1 || player.ticketPrice <= 0 || player.cash < 0 || player.startingCash <= 0 ||
+        player.operatingCost < 0 || player.reputation < 0 || player.reputation > 100)
+      throw new Error("Invalid player festival.");
+    const bookingIds = new Set<string>();
+    for (const booking of player.bookings) {
+      requireIds([booking.bandId], bands);
+      if (!booking.id || bookingIds.has(booking.id) || !Number.isInteger(booking.fee) || booking.fee < 0 ||
+          !["booked", "cancelled", "performed", "missed"].includes(booking.status))
+        throw new Error("Invalid festival booking.");
+      bookingIds.add(booking.id);
+    }
+    const live = player.bookings.filter(booking => booking.status !== "cancelled");
+    if (live.length > 3 || new Set(live.map(booking => booking.bandId)).size !== live.length)
+      throw new Error("Invalid festival lineup.");
+    const decisions = new Set<string>();
+    for (const decision of player.decisions) {
+      requireIds([decision.caseId], caseIds);
+      requireIds([decision.bookingId], bookingIds);
+      const key = `${decision.caseId}/${decision.bookingId}`;
+      if (!["keep", "cancel", "replace"].includes(decision.choice) || decisions.has(key) ||
+          !Number.isInteger(decision.week) || decision.week < 0 || decision.week > world.week ||
+          player.bookings.find(booking => booking.id === decision.bookingId)?.bandId !==
+            world.arrestCases.find(incident => incident.id === decision.caseId)?.bandId)
+        throw new Error("Invalid festival decision.");
+      decisions.add(key);
+    }
+    requireIds(Object.keys(player.bandTrust), bands);
+    for (const trust of Object.values(player.bandTrust)) {
+      check(trust, "number", "bandTrust");
+      if (trust < 0 || trust > 100) throw new Error("Invalid band trust.");
+    }
+    const venue = world.venues.find(item => item.id === player.venueId)!;
+    if (player.capacity > venue.capacity) throw new Error("Festival capacity exceeds venue capacity.");
+    const costs = venue.rentalCost + player.operatingCost +
+      player.bookings.reduce((total, booking) => total + (booking.status === "cancelled" ? Math.ceil(booking.fee / 2) : booking.fee), 0);
+    if (player.status === "completed") {
+      check(player.result, resultShape, "festival.result");
+      const result = player.result!;
+      requireIds([...result.performedBandIds, ...result.missedBandIds], bands);
+      if (result.attendance < 0 || result.attendance > player.capacity ||
+          result.revenue !== result.attendance * player.ticketPrice ||
+          result.costs !== costs || result.profit !== result.revenue - costs ||
+          player.eventWeek > world.week || live.some(booking => booking.status === "booked") ||
+          JSON.stringify(result.performedBandIds) !== JSON.stringify(live.filter(booking => booking.status === "performed").map(booking => booking.bandId)) ||
+          JSON.stringify(result.missedBandIds) !== JSON.stringify(live.filter(booking => booking.status === "missed").map(booking => booking.bandId)))
+        throw new Error("Invalid festival result.");
+    } else if (player.result !== null || player.eventWeek <= world.week || live.some(booking => booking.status !== "booked")) {
+      throw new Error("Invalid festival planning state.");
+    }
+    if (player.cash !== player.startingCash - costs + (player.result?.revenue ?? 0))
+      throw new Error("Festival cash does not match its ledger.");
+  }
   const statuses = ["active", "hiatus", "split", "closed", "left"];
   for (const item of [...world.bands, ...world.members, ...world.labels, ...world.festivals, ...world.staff])
     if (!statuses.includes(item.status)) throw new Error("Invalid entity status.");
@@ -142,6 +248,18 @@ export function encodeSave(world: WorldState, readEventIds: string[] = []): stri
 export function decodeSave(payload: string): WorldSave {
   let value: unknown;
   try { value = JSON.parse(payload); } catch { throw new Error("The save file is not valid JSON."); }
+  const old = value as WorldSave | null;
+  if (old?.format === "headliner-world" && old.version === 1 && old.simulationVersion === "0.0.3") {
+    // Check the legacy structure before adding the new fields. Never consume RNG.
+    check(old, { world: worldShape, readEventIds: ["string"], savedAt: "string" }, "legacySave");
+    old.world.members = old.world.members.map(member => ({
+      ...member, ...conductDefaults(member.id, member.professionalism),
+    }));
+    old.world.arrestCases = [];
+    old.world.playerFestival = null;
+    old.version = SAVE_VERSION;
+    old.simulationVersion = SIMULATION_VERSION;
+  }
   validateSave(value);
   return value;
 }

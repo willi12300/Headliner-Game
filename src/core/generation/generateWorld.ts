@@ -10,6 +10,7 @@ import type {
   WorldState,
 } from "../domain/models";
 import { average, clamp, SeededRng } from "../rng/SeededRng";
+import { conductDefaults } from "../simulation/arrests";
 import { applyBandDerivedValues, calculateBandValues } from "../simulation/derived";
 
 const firstNames = ["Alex", "Sam", "Mia", "Tom", "Freya", "Jack", "Lola", "Ryan", "Emma", "Ash", "Maya", "Ollie", "Nina", "Jude", "Finn", "Ruby", "Charlie", "Sienna", "Oscar", "Ivy"];
@@ -107,9 +108,11 @@ export function generateWorld(seed: number): WorldState {
         morale: rng.int(55, 86),
         injurySusceptibility: rng.int(1, 20),
         weeksUnavailable: 0,
+        riskTaking: 0, stress: 0, pastIncidents: 0,
         relationships: {},
         traits: rng.chance(0.12) ? [rng.pick(["Natural Leader", "Creative Genius", "Poor Lifestyle", "Injury Prone"])] : [],
       };
+      Object.assign(member, conductDefaults(member.id, member.professionalism));
       return member;
     });
 
@@ -272,5 +275,7 @@ export function generateWorld(seed: number): WorldState {
     storyArcs: [],
     events: [],
     snapshots: [],
+    arrestCases: [],
+    playerFestival: null,
   };
 }

@@ -1,8 +1,10 @@
 import type { Band, BandMember, Festival, Snapshot, StoryArc, WorldState } from "../domain/models";
 import { average, clamp, SeededRng } from "../rng/SeededRng";
+import { recordEvent } from "./events";
+import { conductDefaults, isDetained, processArrests } from "./arrests";
+import { processPlayerFestival } from "./playerFestival";
 import { applyBandDerivedValues, calculateBandValues } from "./derived";
 
-const eventId = (state: WorldState, type: string): string => `${type}_${state.week}_${state.events.length + 1}`;
 const arcId = (state: WorldState): string => `arc_${state.week}_${state.storyArcs.length + 1}`;
 
 function membersOf(state: WorldState, band: Band): BandMember[] {
@@ -11,27 +13,9 @@ function membersOf(state: WorldState, band: Band): BandMember[] {
     .filter((member): member is BandMember => Boolean(member));
 }
 
-function recordEvent(
-  state: WorldState,
-  type: string,
-  severity: number,
-  entityIds: string[],
-  summary: string,
-): void {
-  state.events.push({
-    id: eventId(state, type),
-    week: state.week,
-    year: state.year,
-    type,
-    severity,
-    entityIds,
-    summary,
-  });
-}
-
 function processMemberDevelopment(state: WorldState, rng: SeededRng): void {
   state.members.forEach((member) => {
-    if (member.status !== "active") return;
+    if (member.status !== "active" || isDetained(state, member.id)) return;
 
     if (member.weeksUnavailable > 0) {
       member.weeksUnavailable -= 1;
@@ -92,7 +76,7 @@ function recalculateBand(state: WorldState, band: Band): void {
     return;
   }
 
-  const available = members.filter((member) => member.weeksUnavailable === 0);
+  const available = members.filter((member) => member.weeksUnavailable === 0 && !isDetained(state, member.id));
   const performers = available.length > 0 ? available : members;
   const relationshipValues = members.flatMap((member) =>
     Object.entries(member.relationships)
@@ -228,6 +212,7 @@ function recruitReplacement(state: WorldState, band: Band, rng: SeededRng): void
     member.relationships[replacement.id] = rng.int(35, 70);
     replacement.relationships[member.id] = rng.int(35, 70);
   });
+  Object.assign(replacement, conductDefaults(replacement.id, replacement.professionalism));
   state.members.push(replacement);
   band.memberIds.push(replacement.id);
   recordEvent(state, "member_joined", 2, [replacement.id, band.id], `${replacement.name} joined ${band.name}.`);
@@ -390,6 +375,7 @@ export function simulateWeek(state: WorldState): WorldState {
   state.week += 1;
   state.year = Math.floor((state.week - 1) / 52) + 1;
 
+  processArrests(state, rng);
   processMemberDevelopment(state, rng);
   processBandCareer(state, rng);
   processRelationships(state, rng);
@@ -400,6 +386,8 @@ export function simulateWeek(state: WorldState): WorldState {
   state.bands.forEach((band) => {
     if (band.status === "active") recalculateBand(state, band);
   });
+
+  processPlayerFestival(state, rng);
 
   if (state.week % 52 === 0) {
     state.members.forEach((member) => {

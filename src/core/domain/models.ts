@@ -1,4 +1,5 @@
 import type { BandDerivedValues } from "../simulation/derived/types";
+import type { ArrestCase, PlayerFestival } from "./playerFestival";
 
 export type EntityStatus = "active" | "hiatus" | "split" | "closed" | "left";
 
@@ -27,6 +28,9 @@ export interface BandMember {
   morale: number;
   injurySusceptibility: number;
   weeksUnavailable: number;
+  riskTaking: number;
+  stress: number;
+  pastIncidents: number;
   relationships: Record<string, number>;
   traits: string[];
 }
@@ -216,4 +220,6 @@ export interface WorldState {
   storyArcs: StoryArc[];
   events: SimulationEvent[];
   snapshots: Snapshot[];
+  arrestCases: ArrestCase[];
+  playerFestival: PlayerFestival | null;
 }

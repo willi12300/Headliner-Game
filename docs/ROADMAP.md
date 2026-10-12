@@ -1,5 +1,11 @@
 Version 0.1
 
+Current playable milestone (2026-10-12): persistent world saves and industry
+news, one six-week player festival, booking budgets, arrest storylines,
+keep/cancel/replace decisions, and attendance/financial/reputation results.
+This covers a small first slice of festival gameplay; full negotiations,
+marketing, staff, ticket-sale progression and multi-edition careers are pending.
+
 
 
 ☑ Foundation
